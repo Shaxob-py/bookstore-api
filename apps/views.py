@@ -109,8 +109,7 @@ class CategoryCreateApiView(CreateAPIView):
 
 @extend_schema(tags=['categories'], parameters=[
     OpenApiParameter(name='category_id', description='Category id ni kiriting', required=False, type=int)
-],
-               )
+],)
 class CategorySearchListAPIView(ListAPIView):
     serializer_class = CategoryModelSerializer
 
@@ -484,6 +483,7 @@ class UserSearchLangListAPIView(ListAPIView):
         if lang:
             query = query.filter(lang=lang)
         return query
+
 
 
 @extend_schema(tags=['admins'])

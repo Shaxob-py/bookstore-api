@@ -7,7 +7,7 @@ from apps.views import BookListApiView, BookCreateApiView, BookGetListApiView, B
     UserPartialUpdateAPIView, UserPartialDestroyAPIView, DeletedUserListAPIView, DeletedUserGetListView, \
     NetworkListAPIView, NetworkCreateAPIView, UserOrderListAPIView, OrderOrderItemListAPIView, BookCategoryListAPIView, \
     BookStatusListAPIView, TrendingCategoryListAPIView, OrderStatsAPIView, BookSearchTitleListAPIView, GetUserOrderBook, \
-    GetUserChatListAPIView, BookSearchAuthorListAPIView, UserSearchLangListAPIView
+    GetUserChatListAPIView, BookSearchAuthorListAPIView, UserSearchLangListAPIView, AdminListAPIView
 
 urlpatterns = [
     path('book/list', BookListApiView.as_view(), name='book-list'),
@@ -20,9 +20,9 @@ urlpatterns = [
     path('book/available', BookMoneyAmountListApiView.as_view(), name='book-available'),
 
     # ===========================Category=======================================
-    path('category', CategoryListAPIView.as_view(), name='category'),
+    path('category/get', CategoryListAPIView.as_view(), name='category'),
     path('category/create', CategoryCreateApiView.as_view(), name='category-create'),
-    path('category/search_id', CategorySearchListAPIView.as_view(), name='category-search_id'),
+    path('category/search', CategorySearchListAPIView.as_view(), name='category-search_id'),
     path('category/update<int:id>', CategoryUpdateApiView.as_view(), name='category-update'),
     path('category/delete<int:id>', CategoryDestroyAPIView.as_view(), name='category-delete'),
 
