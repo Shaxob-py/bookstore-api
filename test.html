@@ -1,0 +1,377 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: #2ed573;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.5);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            text-align: right;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.own .message-bubble {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .message:not(.own) .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .username-input {
+            width: 100px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .username-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #ff4757;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">WebSocket Chat</div>
+            <div class="connection-status" id="connectionStatus"></div>
+        </div>
+
+        <div class="messages-container" id="messagesContainer">
+            <div class="message">
+                <div class="message-bubble">
+                    WebSocket serverga ulanish uchun "Ulash" tugmasini bosing
+                </div>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <div class="input-container">
+            <input type="text" id="usernameInput" class="username-input" placeholder="Ismingiz" value="Foydalanuvchi">
+            <input type="text" id="messageInput" class="message-input" placeholder="Xabar yozing..." disabled>
+            <button id="sendBtn" class="send-btn" onclick="connectWebSocket()">Ulash</button>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let username = 'Foydalanuvchi';
+
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const usernameInput = document.getElementById('usernameInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const errorContainer = document.getElementById('errorContainer');
+
+        // WebSocket serverga ulanish
+        function connectWebSocket() {
+            if (isConnected) {
+                sendMessage();
+                return;
+            }
+
+            // Django Channels WebSocket serveriga ulanish
+            const protocol =  'ws:';
+            const wsUrl = `${protocol}//10.40.0.182:8080/ws/chat/`;
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function(event) {
+                isConnected = true;
+                connectionStatus.classList.add('connected');
+                messageInput.disabled = false;
+                sendBtn.textContent = 'Yuborish';
+                usernameInput.disabled = true;
+                username = usernameInput.value || 'Foydalanuvchi';
+
+                addMessage(`Chatga ulandingiz`, false, true);
+                clearError();
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const message = data.message;
+
+                // Xabarni boshqa foydalanuvchidan kelgan deb hisoblaymiz
+                // (haqiqiy ilovada foydalanuvchi ID yoki username bilan farqlash kerak)
+                addMessage(message, false);
+            };
+
+            socket.onclose = function(event) {
+                isConnected = false;
+                connectionStatus.classList.remove('connected');
+                messageInput.disabled = true;
+                sendBtn.textContent = 'Ulash';
+                usernameInput.disabled = false;
+
+                if (event.code !== 1000) {
+                    showError('Ulanish uzildi. Qayta ulanish uchun "Ulash" tugmasini bosing.');
+                    addMessage('Ulanish uzildi', false, true);
+                }
+            };
+
+            socket.onerror = function(error) {
+                showError('WebSocket xatosi yuz berdi.');
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Xabar yuborish
+        function sendMessage() {
+            const message = `${username}`+data.message;
+            if (message && isConnected) {
+                // O'z xabarimizni darhol ko'rsatish
+                addMessage(message, true);
+
+                // Serverga JSON formatida yuborish
+                socket.send(JSON.stringify({
+                    'message': message
+                }));
+
+                messageInput.value = '';
+            }
+        }
+
+        // Xabarni chatga qo'shish
+        function addMessage(text, isOwn = false, isSystem = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message' + (isOwn ? ' own' : '');
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+
+            if (isSystem) {
+                bubbleDiv.style.background = '#95a5a6';
+                bubbleDiv.style.color = 'white';
+                bubbleDiv.style.fontStyle = 'italic';
+            }
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString('uz-UZ', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            messageDiv.appendChild(bubbleDiv);
+            messageDiv.appendChild(timeDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Xato xabarini ko'rsatish
+        function showError(message) {
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            setTimeout(() => {
+                clearError();
+            }, 5000);
+        }
+
+        // Xato xabarini tozalash
+        function clearError() {
+            errorContainer.innerHTML = '';
+        }
+
+        // Event listeners
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connectWebSocket();
+            }
+        });
+
+        // Sahifa yopilganda ulanishni yopish
+        window.addEventListener('beforeunload', function() {
+            if (socket && isConnected) {
+                socket.close();
+            }
+        });
+    </script>
+</body>
+</html>
