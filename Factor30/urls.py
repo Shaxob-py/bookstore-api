@@ -23,3 +23,4 @@ urlpatterns = [
     path('', SpectacularSwaggerView.as_view() ),
     path('api/v1/', include('apps.urls')),
 ]
+'''don'''
